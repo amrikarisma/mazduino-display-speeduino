@@ -1,8 +1,8 @@
-# TFT_eSPI Configuration for ILI9488 3.5" TFT with ESP32-C3
+# Speeduino ECU Display using ESP32-C3 and ILI9488 3.5" TFT
 
 ## Summary
 
-I have successfully configured the TFT_eSPI library for a 3.5 inch TFT LCD display with ILI9488 driver on ESP32-C3 microcontroller. This configuration has been optimized for ESP32-C3 pin mapping with backlight connected directly to power supply.
+This project creates a digital dashboard display for Speeduino ECU using ESP32-C3 microcontroller and a 3.5 inch TFT LCD display with ILI9488 driver. The display shows real-time engine data from the Speeduino ECU including RPM, AFR, TPS, advance timing, MAP, and other sensor readings. The configuration has been optimized for ESP32-C3 pin mapping with reliable serial communication to the ECU.
 
 ## Build Status: ✅ SUCCESS
 
@@ -10,7 +10,9 @@ Project has been successfully compiled with the latest pin configuration.
 
 ## Pin Configuration
 
-Pin mapping used in this configuration:
+### TFT Display Pin Mapping
+
+Pin mapping used for ILI9488 TFT display:
 
 ```
 TFT_MISO = 5   // SPI MISO
@@ -20,6 +22,18 @@ TFT_CS   = 7   // Chip Select
 TFT_DC   = 8   // Data/Command
 TFT_RST  = 10  // Reset
 ```
+
+### Serial Communication to Speeduino ECU
+
+Pin mapping used for UART communication to Speeduino ECU:
+
+```
+RX_PIN   = 20  // Serial RX (connect to Speeduino TX)
+TX_PIN   = 21  // Serial TX (connect to Speeduino RX)
+BAUD_RATE = 115200  // Communication speed
+```
+
+**Note:** Uses Serial1 (hardware UART) for reliable communication with Speeduino ECU.
 
 ## What Has Been Configured
 
@@ -46,7 +60,9 @@ TFT_RST  = 10  // Reset
 1. **`platformio.ini`** - Added dependencies and build flags
 2. **`src/main.cpp`** - Fixed font loading and function declarations
 
-## Wiring ILI9488 Display to ESP32-C3
+## Wiring Connections
+
+### ILI9488 Display to ESP32-C3
 
 Connect the ILI9488 display to ESP32-C3 according to the pin mapping above:
 
@@ -64,7 +80,22 @@ LED/BL            3.3V (direct connection without control)
 SDO/MISO          GPIO 5
 ```
 
-**Note:** Backlight (LED/BL) is connected directly to 3.3V to simplify wiring and ensure the display is always on. No backlight control pin is used in this implementation.
+### Speeduino ECU to ESP32-C3
+
+Connect the Speeduino ECU serial pins to ESP32-C3:
+
+```
+Speeduino ECU     ESP32-C3
+-------------     --------
+TX (Serial Out)   GPIO 20 (RX)
+RX (Serial In)    GPIO 21 (TX)
+GND               GND
+```
+
+**Note:** 
+- Backlight (LED/BL) is connected directly to 3.3V to simplify wiring and ensure the display is always on. No backlight control pin is used in this implementation.
+- Serial communication uses 115200 baud rate, 8 data bits, no parity, 1 stop bit (8N1)
+- Make sure to connect GND between all devices for proper communication
 
 ## Build Steps
 
