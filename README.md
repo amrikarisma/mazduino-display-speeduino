@@ -142,3 +142,36 @@ This project uses and references the following resources:
 - **[Image2CPP Tool](https://github.com/amrikarisma/image2cpp)** - Online tool for converting images to C/C++ arrays for embedded displays
 
 The project is now ready to use with the ILI9488 3.5 inch display!
+
+## Support & Documentation
+
+### 🌐 **Official Website**
+For complete documentation, tutorials, and support visit:
+**[www.mazduino.com](https://www.mazduino.com)**
+
+### 📚 **What You'll Find:**
+- **Setup Guides** - Complete installation and configuration tutorials
+- **Troubleshooting** - Common issues and solutions
+- **Feature Documentation** - Detailed feature explanations
+- **Community Forum** - Get help from other users
+- **Contact Support** - Direct support channels
+- **Latest Updates** - Firmware updates and new features
+
+### 💬 **Need Help?**
+- 🔧 **Technical Issues** - Visit our troubleshooting section
+- 💡 **Feature Requests** - Submit ideas for new features  
+- 🐛 **Bug Reports** - Report issues for quick resolution
+- 📖 **Documentation** - Access complete user guides
+- 🤝 **Community** - Connect with other Mazduino users
+
+### 📧 **Contact Information**
+Visit [www.mazduino.com](https://www.mazduino.com) for:
+- Direct contact forms
+- Support ticket system
+- Community forums
+- Live chat support
+- Email support
+
+---
+
+**© 2025 Mazduino Project | Visit [www.mazduino.com](https://www.mazduino.com) for support**

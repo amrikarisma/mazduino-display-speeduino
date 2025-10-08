@@ -9,7 +9,7 @@
 #include <TFT_eSPI.h>
 #include "NotoSansBold15.h"
 #include "NotoSansBold36.h"
-#include "splash/zettech.h"
+#include "splash/splash_manager.h"
 
 #define AA_FONT_SMALL NotoSansBold15
 #define AA_FONT_LARGE NotoSansBold36
@@ -18,11 +18,15 @@
 void handleRoot();
 void handleUpdate();
 void handleToggle();
+void handleSplash();
+void handleDisplayMode();
+void handleInfo();
 void drawSplashScreenWithImage();
 void startUpDisplay();
 void drawData();
 void drawDataBox(int x, int y, const char* label, const int value, uint16_t labelColor, const int valueToCompare, const int decimal, bool setup);
 void itemDraw(bool setup);
+void forceRedrawFPSLabel();
 
 const char* version = "0.1.1";
 
@@ -101,14 +105,22 @@ void drawData() {
 }
 
 void drawSplashScreenWithImage() {
-  // Draw enhanced ZetTech ECU splash image
-  drawZetTechSplash(display, 0, 0, TFT_WHITE, TFT_BLACK);
+  // Draw current selected splash screen dynamically
+  drawCurrentSplash(display, 0, 0, TFT_WHITE, TFT_BLACK);
   
-  // Add version info at the bottom
+  // Add splash screen name and version info at the bottom
   display.loadFont(AA_FONT_SMALL);
   display.setTextColor(TFT_YELLOW, TFT_BLACK);
+  display.setTextDatum(BL_DATUM);
+  display.drawString(getSplashScreenName(), 5, display.height() - 5);
+  
   display.setTextDatum(BR_DATUM);
   display.drawString("v" + String(version), display.width() - 5, display.height() - 5);
+  
+  // Add website info at the top
+  display.setTextColor(TFT_CYAN, TFT_BLACK);
+  display.setTextDatum(TC_DATUM);
+  display.drawString("www.mazduino.com", display.width() / 2, 5);
   
   delay(5000);
 }
@@ -205,6 +217,19 @@ void itemDraw(bool setup) {
     drawSmallButton((10 + 60 * i), 285, buttonLabels[i], buttonStates[i]);
   }
 }
+
+void forceRedrawFPSLabel() {
+  // Force redraw just the FPS/FP label and value (position [3] in lazy array)
+  const char* label = (EEPROM.read(0) == 1) ? "FPS" : "FP";
+  int value = (EEPROM.read(0) == 1) ? refreshRate : fp;
+  
+  // Clear the label area first
+  display.fillRect(240, 190, 100, 80, TFT_BLACK);
+  
+  // Redraw the label and value
+  drawDataBox(240, 190, label, value, TFT_WHITE, -1, 0, true);  // Force setup=true to redraw label
+}
+
 void startUpDisplay() {
   display.fillScreen(TFT_BLACK);
   display.loadFont(AA_FONT_SMALL);
@@ -236,7 +261,6 @@ const char* uploadPage PROGMEM = R"rawliteral(
         justify-content: center;
         align-items: center;
         flex-direction: column;
-        height: 100vh;
         background-color: black;
         color: white;
       }
@@ -251,6 +275,41 @@ const char* uploadPage PROGMEM = R"rawliteral(
       }
       .toggle-btn.off {
         background-color: #FF0000;
+      }
+      .warning-box {
+        background-color: #ffebcc;
+        border: 2px solid #ff9900;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 5px;
+        color: #333;
+      }
+      .warning-title {
+        color: #cc6600;
+        margin-top: 0;
+        font-weight: bold;
+      }
+      .warning-text {
+        margin: 5px 0;
+        font-weight: bold;
+        color: #cc6600;
+      }
+      .warning-list {
+        margin: 5px 0;
+        padding-left: 20px;
+        color: #333;
+      }
+      .recovery-box {
+        background-color: #ffe6e6;
+        border: 1px solid #ff4444;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+      }
+      .recovery-text {
+        color: #cc0000;
+        margin: 0;
+        font-size: 14px;
       }
     </style>
     <script>
@@ -271,14 +330,86 @@ const char* uploadPage PROGMEM = R"rawliteral(
   </head>
   <body>
     <h1>MAZDUINO Display OTA Update</h1>
+    <div class="warning-box">
+      <h3 class="warning-title">IMPORTANT WARNING - OTA UPDATE</h3>
+      <p class="warning-text">Only use official firmware from Mazduino!</p>
+      <p>If you upload unofficial firmware or from other sources:</p>
+      <ul class="warning-list">
+        <li>This web page will likely disappear</li>
+        <li>OTA update feature may become inaccessible</li>
+        <li>You will need to use USB cable for future updates</li>
+      </ul>
+      <p class="warning-text">Download official firmware only from: www.mazduino.com</p>
+    </div>
     <form method="POST" action="/update" enctype="multipart/form-data">
-      <input type="file" name="firmware">
-      <input type="submit" class="btn" value="Upload">
+      <input type="file" name="firmware" accept=".bin">
+      <input type="submit" class="btn" value="Upload Firmware" onclick="return confirm('Are you sure this is official Mazduino firmware?')">
     </form>
     <hr>
     <h2>Display Control</h2>
-    <p>Sabar ya nanti diupdate :) </p>
+    <h3>Splash Screen Selection</h3>
+    <button class="btn" onclick="nextSplash()">Next Splash Screen</button>
+    <p id="currentSplash">Current: Loading...</p>
+    <hr>
+    <h3>Display Mode Control</h3>
+    <button class="btn" id="displayModeBtn" onclick="toggleDisplayMode()">Switch to FP Mode</button>
+    <p id="currentMode">Current: Loading...</p>
+    <hr>
+    <h3>Support & Documentation</h3>
+    <p>For complete documentation, tutorials, and support:</p>
+    <p><a href="https://www.mazduino.com" target="_blank" style="color: #007BFF; text-decoration: none;">Visit www.mazduino.com</a></p>
+    <p>Questions, feedback, or need help? Visit our website for:</p>
+    <ul style="text-align: left; max-width: 400px;">
+      <li>Complete setup guides</li>
+      <li>Troubleshooting help</li>
+      <li>Feature requests</li>
+      <li>Community support</li>
+      <li>Direct contact</li>
+      <li><strong>Official firmware downloads</strong></li>
+    </ul>
+    <p><a href="/info" target="_blank" style="color: #28a745; text-decoration: none;">Device Information</a></p>
+    <div class="recovery-box">
+      <p class="recovery-text"><strong>Backup Recovery:</strong> If this page becomes inaccessible after firmware update, use USB cable to upload the correct firmware.</p>
+    </div>
+    <hr>
     <!-- <button class="btn toggle-btn" onclick="toggleState(this)">Display 1</button> -->
+    
+    <script>
+      function nextSplash() {
+        fetch('/splash', { method: 'POST' })
+        .then(response => response.text())
+        .then(data => {
+          document.getElementById('currentSplash').textContent = 'Current: ' + data;
+        });
+      }
+      
+      function toggleDisplayMode() {
+        fetch('/displaymode', { method: 'POST' })
+        .then(response => response.text())
+        .then(data => {
+          document.getElementById('currentMode').textContent = 'Current: ' + data + ' Mode';
+          // Update button text
+          const btn = document.getElementById('displayModeBtn');
+          btn.textContent = data === 'FPS' ? 'Switch to FP Mode' : 'Switch to FPS Mode';
+        });
+      }
+      
+      // Load current splash screen name on page load
+      fetch('/splash', { method: 'GET' })
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById('currentSplash').textContent = 'Current: ' + data;
+      });
+      
+      // Load current display mode on page load
+      fetch('/displaymode', { method: 'GET' })
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById('currentMode').textContent = 'Current: ' + data + ' Mode';
+        const btn = document.getElementById('displayModeBtn');
+        btn.textContent = data === 'FPS' ? 'Switch to FP Mode' : 'Switch to FPS Mode';
+      });
+    </script>
 
   </body>
 </html>
@@ -299,9 +430,56 @@ void handleToggle() {
     EEPROM.commit();
 
     server.send(200, "text/plain", "OK");
-    delay(1000);
-    ESP.restart();
+    // Removed restart - no longer needed for display mode changes
   }
+}
+
+void handleSplash() {
+  if (server.method() == HTTP_POST) {
+    // Switch to next splash screen
+    SplashType newSplash = nextSplashScreen();
+    server.send(200, "text/plain", getSplashScreenName(newSplash));
+  } else if (server.method() == HTTP_GET) {
+    // Return current splash screen name
+    server.send(200, "text/plain", getSplashScreenName());
+  }
+}
+
+void handleDisplayMode() {
+  if (server.method() == HTTP_POST) {
+    // Toggle display mode
+    bool currentMode = EEPROM.read(0);
+    bool newMode = !currentMode;
+    EEPROM.write(0, newMode);
+    EEPROM.commit();
+    
+    // Force immediate redraw of the FPS/FP label
+    forceRedrawFPSLabel();
+    
+    // Also force redraw on next itemDraw call for consistency
+    lazyUpdateTime = 0;
+    
+    // Return new mode name
+    server.send(200, "text/plain", newMode ? "FPS" : "FP");
+  } else if (server.method() == HTTP_GET) {
+    // Return current display mode
+    bool currentMode = EEPROM.read(0);
+    server.send(200, "text/plain", currentMode ? "FPS" : "FP");
+  }
+}
+
+void handleInfo() {
+  String info = "Mazduino Display v" + String(version) + "\n";
+  info += "Hardware: ESP32-C3 + ILI9488 3.5\" TFT\n";
+  info += "Current Splash: " + String(getSplashScreenName()) + "\n";
+  info += "Display Mode: " + String((EEPROM.read(0) == 1) ? "FPS" : "FP") + "\n";
+  info += "WiFi: " + String(WiFi.softAPgetStationNum()) + " clients connected\n";
+  info += "Uptime: " + String(millis() / 1000) + " seconds\n";
+  info += "Memory: " + String(ESP.getFreeHeap()) + " bytes free\n";
+  info += "\nFor support and documentation visit:\n";
+  info += "https://www.mazduino.com\n";
+  
+  server.send(200, "text/plain", info);
 }
 
 void handleRoot() {
@@ -311,6 +489,14 @@ void handleRoot() {
 void setup() {
   display.init();
   display.setRotation(3);
+  
+  // Initialize EEPROM first
+  EEPROM.begin(EEPROM_SIZE);
+  
+  // Initialize splash screen manager
+  initSplashManager();
+  
+  // Draw the selected splash screen
   drawSplashScreenWithImage();
   display.fillScreen(TFT_BLACK);
 
@@ -329,14 +515,27 @@ void setup() {
       ESP.restart();
     },
     handleUpdate);
-  server.on("/toggle", HTTP_POST, handleToggle);  // Endpoint untuk toggle
+  server.on("/toggle", HTTP_POST, handleToggle);     // Endpoint untuk toggle
+  server.on("/splash", HTTP_GET, handleSplash);      // Get current splash screen
+  server.on("/splash", HTTP_POST, handleSplash);     // Switch to next splash screen
+  server.on("/displaymode", HTTP_GET, handleDisplayMode);   // Get current display mode
+  server.on("/displaymode", HTTP_POST, handleDisplayMode);  // Toggle display mode
+  server.on("/info", HTTP_GET, handleInfo);          // Get device information
 
   server.begin();
   // Serial.println("Web server aktif.");
-  esp_wifi_set_max_tx_power(78);
+  esp_wifi_set_max_tx_power(34); // Set max WiFi power for ESP32-C3
 
-  EEPROM.begin(EEPROM_SIZE);
-  EEPROM.write(0, 1);
+  // Only set default EEPROM value if it's uninitialized (first boot)
+  // Check if EEPROM has been initialized by reading a marker at address 2
+  if (EEPROM.read(2) != 0xAA) {
+    // First boot - set default values
+    EEPROM.write(0, 1);  // Default to FPS mode
+    EEPROM.write(2, 0xAA); // Set initialization marker
+    EEPROM.commit();
+  }
+  // If marker exists, keep existing display mode setting
+  
   delay(500);
   startUpDisplay();
   startupTime = millis();
