@@ -133,4 +133,12 @@ After uploading firmware, the display will show:
 - Speedometer interface with various sensor data
 - Status buttons and indicators
 
+## References
+
+This project uses and references the following resources:
+
+- **[Speeduino ECU](https://speeduino.com/home/)** - Open source engine management system
+- **[TFT_eSPI Library](https://github.com/Bodmer/TFT_eSPI)** - Arduino TFT graphics library for ESP32/ESP8266
+- **[Image2CPP Tool](https://github.com/amrikarisma/image2cpp)** - Online tool for converting images to C/C++ arrays for embedded displays
+
 The project is now ready to use with the ILI9488 3.5 inch display!

@@ -9,6 +9,7 @@
 #include <TFT_eSPI.h>
 #include "NotoSansBold15.h"
 #include "NotoSansBold36.h"
+#include "splash/zettech.h"
 
 #define AA_FONT_SMALL NotoSansBold15
 #define AA_FONT_LARGE NotoSansBold36
@@ -87,26 +88,28 @@ void drawData() {
     spr.drawNumber(rpm, 100, 5);
     spr.pushSprite(190, 140);
     spr.deleteSprite();
+    
+    // Redraw RPM label to ensure it's always visible
+    display.loadFont(AA_FONT_SMALL);
+    display.setTextColor(TFT_WHITE, TFT_BLACK);
+    display.setTextDatum(TC_DATUM);
+    display.drawString("RPM", 240, 120);
+    
     lastRpm = rpm;
   }
   itemDraw(false);
 }
 
 void drawSplashScreenWithImage() {
-  display.fillScreen(TFT_BLACK);
-  display.loadFont(AA_FONT_LARGE);
-  display.setTextColor(TFT_WHITE, TFT_BLACK);
-
-  display.setTextDatum(TC_DATUM);
-  int centerX = display.width() / 2;
-  int centerY = (display.height() / 2) - 35;
-
-  display.drawString("MAZDUINO Display", centerX, centerY);
+  // Draw enhanced ZetTech ECU splash image
+  drawZetTechSplash(display, 0, 0, TFT_WHITE, TFT_BLACK);
+  
+  // Add version info at the bottom
   display.loadFont(AA_FONT_SMALL);
-  display.drawString("Firmware version: " + String(version), centerX, centerY + 50);
-  display.drawString("https://www.mazduino.com", centerX, 300);
-  // display.drawString("Powered by "+ String(ESP.getChipModel())+ " Rev"+ String(ESP.getChipRevision()), centerX, 300);
-
+  display.setTextColor(TFT_YELLOW, TFT_BLACK);
+  display.setTextDatum(BR_DATUM);
+  display.drawString("v" + String(version), display.width() - 5, display.height() - 5);
+  
   delay(5000);
 }
 
@@ -207,7 +210,8 @@ void startUpDisplay() {
   display.loadFont(AA_FONT_SMALL);
   spr.setColorDepth(16);
   display.setTextColor(TFT_WHITE, TFT_BLACK);
-  display.drawString("RPM", 190, 120);
+  display.setTextDatum(TC_DATUM);  // Set text datum to top center
+  display.drawString("RPM", 240, 120);  // Center the label properly
   itemDraw(true);
   spr.loadFont(AA_FONT_LARGE);
   for (int i = rpm; i >= 0; i -= 250) {
